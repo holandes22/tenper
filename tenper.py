@@ -237,7 +237,12 @@ def start(env):
 
     # Add project specific environment variables.
     if config.get('environment'):
-        for k, v in config['environment'].iteritems():
+        try:
+            iterator = config['environment'].iteritems()
+        except (AttributeError):
+            iterator = config['environment'].items()
+
+        for k, v in iterator:
             # Evaluate environment vars embedded in the config.
             v = re.sub(
                 r'\$([a-zA-Z][a-zA-Z0-9_]*)',
