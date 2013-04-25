@@ -23,12 +23,13 @@ virtualenvs = os.path.join(os.path.expanduser('~'), '.virtualenvs')
 config_template = """# Shows up in 'tmux list-sessions' and on the left side of the status bar.
 session name: {env}
 
-# Optional; if provided, the virtualenv activate script will be sourced in all
-# new windows and panes by setting tmux's default-command option.
-virtualenv:
-    python binary: /usr/bin/python
-    site packages?: false
-    path: $HOME/.venv #optional path to virtualenv
+# Uncomment the following to manage a virtualenv for this session. If the
+# virtualenv doesn't exist at <base path>/<session name> a new one will be
+# created.
+#virtualenv:
+#    base path: $HOME/.virtualenvs
+#    python binary: /usr/bin/python
+#    site packages?: false
 
 # When starting a tenper session, all windows and panes will be changed to this
 # directory.
@@ -115,15 +116,16 @@ def confirm_virtualenv(config, delete_first=False):
     if not config.get('virtualenv'):
         return
 
-
-    custom_path = config['virtualenv'].get('path', None)
-    path = os.path.expandvars(custom_path) if custom_path else os.path.join(virtualenvs, config['session name'])
+    virtualenv_base_path = config['virtualenv'].get('base path', '$HOME/.virtualenvs')
+    path = os.path.expandvars(
+        os.path.join(virtualenv_base_path or '',
+                     config['session name']))
 
     # Short circuit: virtualenv exists and we're not deleting it.
     if os.path.exists(path) and not delete_first:
         return
 
-    if delete_first:
+    if virtualenv_base_path and delete_first:
         shutil.rmtree(path)
 
     run('virtualenv -p {python_binary} {site_packages} {dir}',
@@ -161,7 +163,10 @@ def delete(env):
     exists."""
 
     config_file = os.path.join(configs, '{}.yml'.format(env))
-    virtualenv = os.path.join(virtualenvs, env)
+    virtualenv = os.path.expandvars(
+        os.path.join(
+            config_for(env).get('virtualenv', {}).get('base path', '$HOME/.virtualenvs'),
+            env))
 
     if os.path.exists(virtualenv):
         prompt = (
@@ -199,17 +204,17 @@ def start(env):
     virtualenv = config.get('virtualenv', None)
     virtualenv_path = None if not virtualenv else \
         os.path.expandvars(
-            os.path.join(config['virtualenv'].get('path', None) or os.path.join(virtualenvs, session),
+            os.path.join(config.get('virtualenv', {}).get('base path', '$HOME/.virtualenvs'),
+                         session,
                          'bin',
-                         'activate')
-        )
+                         'activate'))
 
     # Short circuit for a preexisting session.
     if run('tmux has-session -t {session}', session=config['session name']) == 0:
         prompt = 'Session already exists: attaching. (Press any key to continue.)'
         try:
             raw_input(prompt)
-        except (ValueError, EOFError):
+        except (NameError, EOFError, ValueError):
             input(prompt)
 
         run('tmux -2 attach-session -t {session}', session=config['session name'])
