@@ -36,8 +36,7 @@ project root: $HOME
 
 # Environment variables (only available inside the tmux session).
 environment:
-    MYKEY: myvalue
-    PATH: $PATH:/foo/bar/baz
+    MYHOME: $HOME
 
 windows:
   - name: One
@@ -50,9 +49,9 @@ windows:
     # list-windows command (see the layout section section in tmux's man page).
     layout: main-vertical
     panes:
-        - ls
-        - vim
-        - top
+      - ls
+      - vim
+      - top
 """
 
 
@@ -116,8 +115,8 @@ def confirm_virtualenv(config, delete_first=False):
     if not config.get('virtualenv'):
         return
 
-    
-    custom_path = config['virtualenv'].get("path", None)
+
+    custom_path = config['virtualenv'].get('path', None)
     path = os.path.expandvars(custom_path) if custom_path else os.path.join(virtualenvs, config['session name'])
 
     # Short circuit: virtualenv exists and we're not deleting it.
@@ -183,7 +182,7 @@ def delete(env):
     try:
         # Clean up after ourselves.
         os.rmdir(configs)
-    except OSError: 
+    except OSError:
         pass
 
 
@@ -204,7 +203,7 @@ def start(env):
                          'bin',
                          'activate')
         )
- 
+
     # Short circuit for a preexisting session.
     if run('tmux has-session -t {session}', session=config['session name']) == 0:
         prompt = 'Session already exists: attaching. (Press any key to continue.)'
